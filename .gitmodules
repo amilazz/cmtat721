@@ -1,0 +1,3 @@
+[submodule "vendor/CMTAT"]
+	path = vendor/CMTAT
+	url = https://github.com/CMTA/CMTAT.git
