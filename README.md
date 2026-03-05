@@ -71,6 +71,85 @@ If no token ID engine is configured, minting uses the provided fallback tokenId.
 - Test implementation: `contracts/mocks/RuleEngine721Mock.sol`
 - Token wiring: `contracts/modules/CMTAT721Base.sol`
 
+## Complete Function Matrix
+
+The table below covers **all callable functions** in the deployed `CMTAT721Standalone` ABI.
+
+- `State = view` gives the view-only surface you asked for.
+- `State = nonpayable` are state-changing functions.
+
+| Function | Module | Inputs | Outputs | State | Who Can Invoke |
+|---|---|---|---|---|---|
+| `ALLOWLIST_ROLE()` | AllowlistModule | - | `bytes32` | `view` | No restriction (constant getter) |
+| `BURNER_ROLE()` | CMTAT721Base | - | `bytes32` | `view` | No restriction (constant getter) |
+| `DEFAULT_ADMIN_ROLE()` | AccessControlUpgradeable | - | `bytes32` | `view` | No restriction (constant getter) |
+| `DOCUMENT_ROLE()` | DocumentEngineModule | - | `bytes32` | `view` | No restriction (constant getter) |
+| `ENFORCER_ROLE()` | EnforcementModule | - | `bytes32` | `view` | No restriction (constant getter) |
+| `EXTRA_INFORMATION_ROLE()` | ExtraInformationModule | - | `bytes32` | `view` | No restriction (constant getter) |
+| `MINTER_ROLE()` | CMTAT721Base | - | `bytes32` | `view` | No restriction (constant getter) |
+| `PAUSER_ROLE()` | PauseModule | - | `bytes32` | `view` | No restriction (constant getter) |
+| `approve(address,uint256)` | ERC721Upgradeable | `address` to<br>`uint256` tokenId | - | `nonpayable` | Token owner or approved operator |
+| `balanceOf(address)` | ERC721Upgradeable | `address` owner | `uint256` | `view` | Read-only |
+| `baseURI()` | CMTAT721Base (metadata) | - | `string` | `view` | Read-only |
+| `batchBurn(address[],uint256[],bytes)` | CMTAT721Base (mint/burn) | `address[]` accounts<br>`uint256[]` tokenIds<br>`bytes` data | - | `nonpayable` | `BURNER_ROLE` |
+| `batchMint(address[],uint256[],bytes)` | CMTAT721Base (mint/burn) | `address[]` accounts<br>`uint256[]` tokenIds<br>`bytes` data | - | `nonpayable` | `MINTER_ROLE` + `tokenIdManagementMode == MINTER_INPUT` |
+| `batchSetAddressAllowlist(address[],bool[])` | AllowlistModule | `address[]` accounts<br>`bool[]` status | - | `nonpayable` | `ALLOWLIST_ROLE` |
+| `batchSetAddressFrozen(address[],bool[])` | EnforcementModule | `address[]` accounts<br>`bool[]` freezes | - | `nonpayable` | `ENFORCER_ROLE` |
+| `burn(address,uint256,bytes)` | CMTAT721Base (mint/burn) | `address` account<br>`uint256` tokenId<br>`bytes` data | - | `nonpayable` | `BURNER_ROLE` |
+| `canTransfer(address,address,uint256)` | CMTAT721Base (validation) | `address` from<br>`address` to<br>`uint256` | `bool` | `view` | Read-only |
+| `canTransferFrom(address,address,address,uint256)` | CMTAT721Base (validation) | `address` spender<br>`address` from<br>`address` to<br>`uint256` | `bool` | `view` | Read-only |
+| `deactivateContract()` | PauseModule | - | - | `nonpayable` | `DEFAULT_ADMIN_ROLE` and contract must be paused |
+| `deactivated()` | PauseModule | - | `bool` | `view` | Read-only |
+| `documentEngine()` | DocumentEngineModule | - | `address` documentEngine_ | `view` | Read-only |
+| `enableAllowlist(bool)` | AllowlistModule | `bool` status | - | `nonpayable` | `ALLOWLIST_ROLE` |
+| `forcedTransfer(address,address,uint256,bytes)` | CMTAT721Base (enforcement) | `address` from<br>`address` to<br>`uint256` tokenId<br>`bytes` data | `bool` | `nonpayable` | `DEFAULT_ADMIN_ROLE` |
+| `getAllDocuments()` | DocumentEngineModule | - | `string[]` documentNames_ | `view` | Read-only |
+| `getApproved(uint256)` | ERC721Upgradeable | `uint256` tokenId | `address` | `view` | Read-only |
+| `getDocument(string)` | DocumentEngineModule | `string` name | `tuple` document | `view` | Read-only |
+| `getRoleAdmin(bytes32)` | AccessControlUpgradeable | `bytes32` role | `bytes32` | `view` | Read-only |
+| `grantRole(bytes32,address)` | AccessControlUpgradeable | `bytes32` role<br>`address` account | - | `nonpayable` | Caller must have admin role for target role |
+| `hasRole(bytes32,address)` | AccessControlUpgradeable | `bytes32` role<br>`address` account | `bool` | `view` | Read-only |
+| `information()` | ExtraInformationModule | - | `string` information_ | `view` | Read-only |
+| `initialize(address,string,string,tuple,address,address,address,uint8)` | CMTAT721Base (init) | `address` admin<br>`string` name_<br>`string` symbol_<br>`tuple` extraInformationAttributes_ (string tokenId; tuple terms; string information)<br>`address` documentEngine_<br>`address` ruleEngine_<br>`address` tokenIdEngine_<br>`uint8` tokenIdManagementMode_ | - | `nonpayable` | Initializer: callable once |
+| `initializeWithERC721Attributes(address,tuple,tuple,address,address,address,uint8)` | CMTAT721Base (init) | `address` admin<br>`tuple` ERC721Attributes_ (string name; string symbol)<br>`tuple` extraInformationAttributes_ (string tokenId; tuple terms; string information)<br>`address` documentEngine_<br>`address` ruleEngine_<br>`address` tokenIdEngine_<br>`uint8` tokenIdManagementMode_ | - | `nonpayable` | Initializer: callable once |
+| `isAllowlistEnabled()` | AllowlistModule | - | `bool` | `view` | Read-only |
+| `isAllowlisted(address)` | AllowlistModule | `address` account | `bool` | `view` | Read-only |
+| `isApprovedForAll(address,address)` | ERC721Upgradeable | `address` owner<br>`address` operator | `bool` | `view` | Read-only |
+| `isFrozen(address)` | EnforcementModule | `address` account | `bool` isFrozen_ | `view` | Read-only |
+| `mint(address,uint256,bytes)` | CMTAT721Base (mint/burn) | `address` account<br>`uint256` tokenId<br>`bytes` data | - | `nonpayable` | `MINTER_ROLE` + `tokenIdManagementMode == MINTER_INPUT` |
+| `mintByUser(uint256,bytes)` | CMTAT721Base (mint/burn) | `uint256` tokenId<br>`bytes` data | - | `nonpayable` | Any caller, but only when `tokenIdManagementMode == USER_INPUT` |
+| `name()` | ERC721Upgradeable | - | `string` | `view` | Read-only |
+| `ownerOf(uint256)` | ERC721Upgradeable | `uint256` tokenId | `address` | `view` | Read-only |
+| `pause()` | PauseModule | - | - | `nonpayable` | `PAUSER_ROLE` |
+| `paused()` | PauseModule | - | `bool` | `view` | Read-only |
+| `renounceRole(bytes32,address)` | AccessControlUpgradeable | `bytes32` role<br>`address` callerConfirmation | - | `nonpayable` | Caller can only renounce own role |
+| `revokeRole(bytes32,address)` | AccessControlUpgradeable | `bytes32` role<br>`address` account | - | `nonpayable` | Caller must have admin role for target role |
+| `ruleEngine()` | ValidationModuleRuleEngineInternal | - | `address` | `view` | Read-only |
+| `safeTransferFrom(address,address,uint256)` | ERC721Upgradeable/CMTAT721Base | `address` from<br>`address` to<br>`uint256` tokenId | - | `nonpayable` | Token owner or approved operator; transfer checks enforced |
+| `safeTransferFrom(address,address,uint256,bytes)` | ERC721Upgradeable/CMTAT721Base | `address` from<br>`address` to<br>`uint256` tokenId<br>`bytes` data | - | `nonpayable` | Token owner or approved operator; transfer checks enforced |
+| `setAddressAllowlist(address,bool,bytes)` | AllowlistModule | `address` account<br>`bool` status<br>`bytes` data | - | `nonpayable` | `ALLOWLIST_ROLE` |
+| `setAddressAllowlist(address,bool)` | AllowlistModule | `address` account<br>`bool` status | - | `nonpayable` | `ALLOWLIST_ROLE` |
+| `setAddressFrozen(address,bool,bytes)` | EnforcementModule | `address` account<br>`bool` freeze<br>`bytes` data | - | `nonpayable` | `ENFORCER_ROLE` |
+| `setAddressFrozen(address,bool)` | EnforcementModule | `address` account<br>`bool` freeze | - | `nonpayable` | `ENFORCER_ROLE` |
+| `setApprovalForAll(address,bool)` | ERC721Upgradeable | `address` operator<br>`bool` approved | - | `nonpayable` | Token owner |
+| `setBaseURI(string)` | CMTAT721Base (metadata) | `string` baseURI_ | - | `nonpayable` | `DEFAULT_ADMIN_ROLE` |
+| `setDocumentEngine(address)` | DocumentEngineModule | `address` documentEngine_ | - | `nonpayable` | `DOCUMENT_ROLE` |
+| `setInformation(string)` | ExtraInformationModule | `string` information_ | - | `nonpayable` | `EXTRA_INFORMATION_ROLE` |
+| `setRuleEngine(address)` | CMTAT721Base (rule engine) | `address` ruleEngine_ | - | `nonpayable` | `DEFAULT_ADMIN_ROLE` |
+| `setTerms(tuple)` | ExtraInformationModule | `tuple` terms_ (string name; string uri; bytes32 documentHash) | - | `nonpayable` | `EXTRA_INFORMATION_ROLE` |
+| `setTokenId(string)` | ExtraInformationModule | `string` tokenId_ | - | `nonpayable` | `EXTRA_INFORMATION_ROLE` |
+| `setTokenIdEngine(address)` | CMTAT721Base (tokenId engine) | `address` tokenIdEngine_ | - | `nonpayable` | `DEFAULT_ADMIN_ROLE` |
+| `supportsInterface(bytes4)` | ERC165/AccessControl/CMTAT721Base | `bytes4` interfaceId | `bool` | `view` | Read-only |
+| `symbol()` | ERC721Upgradeable | - | `string` | `view` | Read-only |
+| `terms()` | ExtraInformationModule | - | `tuple` terms_ | `view` | Read-only |
+| `tokenId()` | ExtraInformationModule | - | `string` tokenId_ | `view` | Read-only |
+| `tokenIdEngine()` | CMTAT721Base (tokenId engine) | - | `address` | `view` | Read-only |
+| `tokenIdManagementMode()` | CMTAT721Base (tokenId engine) | - | `uint8` | `view` | Read-only |
+| `tokenURI(uint256)` | ERC721Upgradeable/CMTAT721Base | `uint256` tokenId | `string` | `view` | Read-only |
+| `transferFrom(address,address,uint256)` | ERC721Upgradeable/CMTAT721Base | `address` from<br>`address` to<br>`uint256` tokenId | - | `nonpayable` | Token owner or approved operator; transfer checks enforced |
+| `unpause()` | PauseModule | - | - | `nonpayable` | `PAUSER_ROLE` and contract must not be deactivated |
+| `version()` | VersionModule | - | `string` version_ | `view` | Read-only |
+
 ## Contracts
 
 Core:
