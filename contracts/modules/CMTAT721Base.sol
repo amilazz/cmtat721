@@ -54,6 +54,8 @@ contract CMTAT721Base is
     error CMTAT_BaseURI_SameValue();
     /// @notice Reverts when attempting to set the same token ID engine address.
     error CMTAT_TokenIdEngine_SameValue();
+    /// @notice Reverts when token ID engine is failing and degraded fallback mode is disabled.
+    error CMTAT_TokenIdEngineUnavailable();
     /// @notice Reverts when a `nonReentrant` function is re-entered.
     error CMTAT_ReentrancyGuard_ReentrantCall();
 
@@ -61,6 +63,8 @@ contract CMTAT721Base is
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     /// @notice Role allowed to burn tokens.
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
+    /// @notice Role allowed to toggle degraded fallback mode for token ID engine failures.
+    bytes32 public constant TOKEN_ID_ENGINE_GUARDIAN_ROLE = keccak256("TOKEN_ID_ENGINE_GUARDIAN_ROLE");
 
     /// @dev Reentrancy guard state: not entered.
     uint256 private constant _NOT_ENTERED = 1;
@@ -76,6 +80,8 @@ contract CMTAT721Base is
     uint256 private _reentrancyGuardStatus;
     /// @dev Optional external token ID engine.
     ITokenIdEngine private _tokenIdEngine;
+    /// @dev Whether fallback to caller-provided token IDs is allowed when the engine reverts.
+    bool private _tokenIdEngineDegradedMode;
 
     /**
      * @notice Emitted on successful mint.
@@ -114,6 +120,27 @@ contract CMTAT721Base is
      * @param newTokenIdEngine New engine address.
      */
     event TokenIdEngineSet(address indexed operator, address indexed oldTokenIdEngine, address indexed newTokenIdEngine);
+    /**
+     * @notice Emitted when degraded fallback mode for engine failures is toggled.
+     * @param operator Caller that changed the mode.
+     * @param enabled New degraded mode value.
+     */
+    event TokenIdEngineDegradedModeSet(address indexed operator, bool enabled);
+    /**
+     * @notice Emitted whenever caller-provided fallback token ID is used.
+     * @param operator Caller that initiated mint.
+     * @param account Mint recipient account.
+     * @param fallbackTokenId Caller-provided fallback token ID used for minting.
+     * @param tokenIdEngine Token ID engine address at decision time (`address(0)` when no engine configured).
+     * @param dueToEngineError True when fallback is due to engine failure, false when no engine is configured.
+     */
+    event TokenIdFallbackUsed(
+        address indexed operator,
+        address indexed account,
+        uint256 fallbackTokenId,
+        address indexed tokenIdEngine,
+        bool dueToEngineError
+    );
 
     /**
      * @dev Prevents nested calls to protected functions.
@@ -246,6 +273,7 @@ contract CMTAT721Base is
         __ValidationRuleEngine_init_unchained(ruleEngine_);
         __TokenIdEngine_init_unchained(tokenIdEngine_);
         _setTokenIdManagementMode(tokenIdManagementMode_);
+        _tokenIdEngineDegradedMode = false;
         _reentrancyGuardStatus = _NOT_ENTERED;
     }
 
@@ -393,6 +421,16 @@ contract CMTAT721Base is
     }
 
     /**
+     * @notice Enables/disables degraded fallback mode for token ID engine failures.
+     * @dev When disabled, engine reverts propagate and minting reverts.
+     * @param enabled New degraded mode value.
+     */
+    function setTokenIdEngineDegradedMode(bool enabled) public virtual onlyRole(TOKEN_ID_ENGINE_GUARDIAN_ROLE) {
+        _tokenIdEngineDegradedMode = enabled;
+        emit TokenIdEngineDegradedModeSet(_msgSender(), enabled);
+    }
+
+    /**
      * @notice Sets ERC721 base URI used for `tokenURI`.
      * @param baseURI_ New base URI prefix.
      */
@@ -418,6 +456,14 @@ contract CMTAT721Base is
      */
     function tokenIdEngine() public view returns (ITokenIdEngine) {
         return _tokenIdEngine;
+    }
+
+    /**
+     * @notice Returns whether degraded fallback mode is enabled for engine failures.
+     * @return enabled True when engine failures fallback to caller-provided token IDs.
+     */
+    function tokenIdEngineDegradedMode() public view returns (bool) {
+        return _tokenIdEngineDegradedMode;
     }
 
     /**
@@ -588,11 +634,16 @@ contract CMTAT721Base is
     function _resolveTokenId(address account, uint256 fallbackTokenId, bytes memory data) internal returns (uint256) {
         ITokenIdEngine tokenIdEngine_ = _tokenIdEngine;
         if (address(tokenIdEngine_) == address(0)) {
+            emit TokenIdFallbackUsed(_msgSender(), account, fallbackTokenId, address(0), false);
             return fallbackTokenId;
         }
         try tokenIdEngine_.getTokenId(_msgSender(), account, data) returns (uint256 tokenId_) {
             return tokenId_;
         } catch {
+            if (!_tokenIdEngineDegradedMode) {
+                revert CMTAT_TokenIdEngineUnavailable();
+            }
+            emit TokenIdFallbackUsed(_msgSender(), account, fallbackTokenId, address(tokenIdEngine_), true);
             return fallbackTokenId;
         }
     }

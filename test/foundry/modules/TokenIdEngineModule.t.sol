@@ -32,6 +32,16 @@ contract TokenIdEngineModuleTest is CMTAT721TestUtils {
         token.ownerOf(1);
 
         tokenIdEngine.setShouldRevert(true);
+        vm.expectRevert(CMTAT721Base.CMTAT_TokenIdEngineUnavailable.selector);
+        token.mint(address1, 2, EMPTY_BYTES);
+        vm.prank(address1);
+        vm.expectRevert();
+        token.setTokenIdEngineDegradedMode(true);
+        vm.expectEmit(address(token));
+        emit CMTAT721Base.TokenIdEngineDegradedModeSet(admin, true);
+        token.setTokenIdEngineDegradedMode(true);
+        vm.expectEmit(address(token));
+        emit CMTAT721Base.TokenIdFallbackUsed(admin, address1, 2, address(tokenIdEngine), true);
         token.mint(address1, 2, EMPTY_BYTES);
         assertEq(token.ownerOf(2), address1);
 
@@ -83,6 +93,19 @@ contract TokenIdEngineModuleTest is CMTAT721TestUtils {
         token.ownerOf(999);
 
         tokenIdEngine.setShouldRevert(true);
+        vm.prank(address1);
+        vm.expectRevert(CMTAT721Base.CMTAT_TokenIdEngineUnavailable.selector);
+        token.mintByUser(11, EMPTY_BYTES);
+        vm.prank(address1);
+        vm.expectRevert();
+        token.setTokenIdEngineDegradedMode(true);
+        token.grantRole(token.TOKEN_ID_ENGINE_GUARDIAN_ROLE(), address3);
+        vm.prank(address3);
+        vm.expectEmit(address(token));
+        emit CMTAT721Base.TokenIdEngineDegradedModeSet(address3, true);
+        token.setTokenIdEngineDegradedMode(true);
+        vm.expectEmit(address(token));
+        emit CMTAT721Base.TokenIdFallbackUsed(address1, address1, 11, address(tokenIdEngine), true);
         vm.prank(address1);
         token.mintByUser(11, EMPTY_BYTES);
         assertEq(token.ownerOf(11), address1);

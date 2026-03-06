@@ -39,7 +39,18 @@ describe('CMTAT721 - TokenIdEngine Module', function () {
     await expect(this.token.ownerOf(1)).to.be.revertedWithCustomError(this.token, 'ERC721NonexistentToken')
 
     await tokenIdEngine.setShouldRevert(true)
-    await this.token.mint(this.address1.address, 2, EMPTY_BYTES)
+    await expect(this.token.mint(this.address1.address, 2, EMPTY_BYTES)).to.be.revertedWithCustomError(
+      this.token,
+      'CMTAT_TokenIdEngineUnavailable'
+    )
+    await expect(this.token.connect(this.address1).setTokenIdEngineDegradedMode(true)).to.be.reverted
+    await expect(this.token.setTokenIdEngineDegradedMode(true))
+      .to.emit(this.token, 'TokenIdEngineDegradedModeSet')
+      .withArgs(this.admin.address, true)
+
+    await expect(this.token.mint(this.address1.address, 2, EMPTY_BYTES))
+      .to.emit(this.token, 'TokenIdFallbackUsed')
+      .withArgs(this.admin.address, this.address1.address, 2, await tokenIdEngine.getAddress(), true)
     expect(await this.token.ownerOf(2)).to.equal(this.address1.address)
 
     await tokenIdEngine.setShouldRevert(false)
@@ -102,7 +113,19 @@ describe('CMTAT721 - TokenIdEngine Module', function () {
     await expect(deployed.token.ownerOf(999)).to.be.revertedWithCustomError(deployed.token, 'ERC721NonexistentToken')
 
     await tokenIdEngine.setShouldRevert(true)
-    await deployed.token.connect(this.address1).mintByUser(11, EMPTY_BYTES)
+    await expect(deployed.token.connect(this.address1).mintByUser(11, EMPTY_BYTES)).to.be.revertedWithCustomError(
+      deployed.token,
+      'CMTAT_TokenIdEngineUnavailable'
+    )
+    await expect(deployed.token.connect(this.address1).setTokenIdEngineDegradedMode(true)).to.be.reverted
+    await deployed.token.grantRole(await deployed.token.TOKEN_ID_ENGINE_GUARDIAN_ROLE(), this.address3.address)
+    await expect(deployed.token.connect(this.address3).setTokenIdEngineDegradedMode(true))
+      .to.emit(deployed.token, 'TokenIdEngineDegradedModeSet')
+      .withArgs(this.address3.address, true)
+
+    await expect(deployed.token.connect(this.address1).mintByUser(11, EMPTY_BYTES))
+      .to.emit(deployed.token, 'TokenIdFallbackUsed')
+      .withArgs(this.address1.address, this.address1.address, 11, await tokenIdEngine.getAddress(), true)
     expect(await deployed.token.ownerOf(11)).to.equal(this.address1.address)
   })
 })

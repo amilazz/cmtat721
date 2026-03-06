@@ -91,7 +91,9 @@ describe('CMTAT721 - Deployment', function () {
       'CMTAT_InvalidMintMode'
     )
 
-    await deployed.token.connect(this.address1).mintByUser(1, EMPTY_BYTES)
+    await expect(deployed.token.connect(this.address1).mintByUser(1, EMPTY_BYTES))
+      .to.emit(deployed.token, 'TokenIdFallbackUsed')
+      .withArgs(this.address1.address, this.address1.address, 1, ethers.ZeroAddress, false)
     expect(await deployed.token.ownerOf(1)).to.equal(this.address1.address)
     expect(await deployed.token.tokenIdManagementMode()).to.equal(MODE_USER_INPUT)
   })

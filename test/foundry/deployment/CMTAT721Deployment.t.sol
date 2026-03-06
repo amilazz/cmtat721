@@ -89,6 +89,8 @@ contract CMTAT721DeploymentTest is CMTAT721TestUtils {
         vm.expectRevert(CMTAT721Base.CMTAT_InvalidMintMode.selector);
         token.batchMint(singleAccount, singleTokenId, EMPTY_BYTES);
 
+        vm.expectEmit(address(token));
+        emit CMTAT721Base.TokenIdFallbackUsed(address1, address1, 1, address(0), false);
         vm.prank(address1);
         token.mintByUser(1, EMPTY_BYTES);
         assertEq(token.ownerOf(1), address1);

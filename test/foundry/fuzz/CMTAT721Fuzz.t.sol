@@ -72,6 +72,7 @@ contract CMTAT721FuzzTest is CMTAT721TestUtils {
         token.batchSetAddressAllowlist(recipients, allowlisted);
 
         tokenIdEngine.setShouldRevert(true);
+        token.setTokenIdEngineDegradedMode(true);
         token.mint(recipient, fallbackTokenId, EMPTY_BYTES);
         assertEq(token.ownerOf(fallbackTokenId), recipient);
     }

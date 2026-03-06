@@ -25,9 +25,10 @@ The same token can need different ID policies depending on issuer requirements:
 ### How it works
 1. `CMTAT721Base` calls `tokenIdEngine.getTokenId(...)` during mint when an engine is configured.
 2. If no engine is configured, it uses the provided tokenId.
-3. If the engine call fails, it falls back to the provided tokenId.
+3. If the engine call fails and degraded mode is enabled, it falls back to the provided tokenId.
+4. If the engine call fails and degraded mode is disabled, mint reverts with `CMTAT_TokenIdEngineUnavailable`.
 
-This gives deterministic behavior and avoids mint failures caused by optional engine outages.
+This gives deterministic behavior and keeps fallback policy explicitly governed.
 
 ## New Non-Breaking Constructor Extension
 
@@ -64,7 +65,15 @@ Behavior:
 - Mock: `contracts/mocks/TokenIdEngineMock.sol`
 - Token wiring: `contracts/modules/CMTAT721Base.sol`
 
-If no token ID engine is configured, minting uses the provided fallback tokenId.
+If no token ID engine is configured, minting uses the provided fallback tokenId and emits `TokenIdFallbackUsed`.
+
+When a token ID engine is configured:
+- If `getTokenId(...)` succeeds, the engine-provided tokenId is used.
+- If `getTokenId(...)` reverts:
+  - With degraded mode disabled, mint reverts (`CMTAT_TokenIdEngineUnavailable`).
+  - With degraded mode enabled, fallback tokenId is used and `TokenIdFallbackUsed` is emitted.
+
+Degraded mode is controlled by `setTokenIdEngineDegradedMode(bool)` and restricted to `TOKEN_ID_ENGINE_GUARDIAN_ROLE`.
 
 ### Rule Engine (`IRuleEngine`)
 - Interface source: `vendor/CMTAT/contracts/interfaces/engine/IRuleEngine.sol`
@@ -88,6 +97,7 @@ The table below covers **all callable functions** in the deployed `CMTAT721Stand
 | `EXTRA_INFORMATION_ROLE()` | ExtraInformationModule | - | `bytes32` | `view` | No restriction (constant getter) |
 | `MINTER_ROLE()` | CMTAT721Base | - | `bytes32` | `view` | No restriction (constant getter) |
 | `PAUSER_ROLE()` | PauseModule | - | `bytes32` | `view` | No restriction (constant getter) |
+| `TOKEN_ID_ENGINE_GUARDIAN_ROLE()` | CMTAT721Base | - | `bytes32` | `view` | No restriction (constant getter) |
 | `approve(address,uint256)` | ERC721Upgradeable | `address` to<br>`uint256` tokenId | - | `nonpayable` | Token owner or approved operator |
 | `balanceOf(address)` | ERC721Upgradeable | `address` owner | `uint256` | `view` | Read-only |
 | `baseURI()` | CMTAT721Base (metadata) | - | `string` | `view` | Read-only |
@@ -139,11 +149,13 @@ The table below covers **all callable functions** in the deployed `CMTAT721Stand
 | `setTerms(tuple)` | ExtraInformationModule | `tuple` terms_ (string name; string uri; bytes32 documentHash) | - | `nonpayable` | `EXTRA_INFORMATION_ROLE` |
 | `setTokenId(string)` | ExtraInformationModule | `string` tokenId_ | - | `nonpayable` | `EXTRA_INFORMATION_ROLE` |
 | `setTokenIdEngine(address)` | CMTAT721Base (tokenId engine) | `address` tokenIdEngine_ | - | `nonpayable` | `DEFAULT_ADMIN_ROLE` |
+| `setTokenIdEngineDegradedMode(bool)` | CMTAT721Base (tokenId engine) | `bool` enabled | - | `nonpayable` | `TOKEN_ID_ENGINE_GUARDIAN_ROLE` |
 | `supportsInterface(bytes4)` | ERC165/AccessControl/CMTAT721Base | `bytes4` interfaceId | `bool` | `view` | Read-only |
 | `symbol()` | ERC721Upgradeable | - | `string` | `view` | Read-only |
 | `terms()` | ExtraInformationModule | - | `tuple` terms_ | `view` | Read-only |
 | `tokenId()` | ExtraInformationModule | - | `string` tokenId_ | `view` | Read-only |
 | `tokenIdEngine()` | CMTAT721Base (tokenId engine) | - | `address` | `view` | Read-only |
+| `tokenIdEngineDegradedMode()` | CMTAT721Base (tokenId engine) | - | `bool` | `view` | Read-only |
 | `tokenIdManagementMode()` | CMTAT721Base (tokenId engine) | - | `uint8` | `view` | Read-only |
 | `tokenURI(uint256)` | ERC721Upgradeable/CMTAT721Base | `uint256` tokenId | `string` | `view` | Read-only |
 | `transferFrom(address,address,uint256)` | ERC721Upgradeable/CMTAT721Base | `address` from<br>`address` to<br>`uint256` tokenId | - | `nonpayable` | Token owner or approved operator; transfer checks enforced |
@@ -173,6 +185,7 @@ Hardhat tests (`test/*.js`) and Foundry tests (`test/foundry/*.t.sol`) cover:
 - Rule engine integration and callbacks
 - Allowlist/pause/freeze module behavior
 - Token ID engine behavior
+- Token ID engine degraded-mode governance and fallback events
 - ERC721 base URI and `tokenURI` behavior
 - Fuzz flows for core mint/transfer behavior
 
